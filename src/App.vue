@@ -107,7 +107,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 
 interface Chisme {
   id: number
@@ -119,18 +119,53 @@ interface Chisme {
   inicial: string
 }
 
-const modoOscuro      = ref(false)
-const nombreInput     = ref('')
-const nombreUsuario   = ref('')
+const modoOscuro       = ref(false)
+const nombreInput      = ref('')
+const nombreUsuario    = ref('')
 const nombreConfirmado = ref(false)
-const nuevoChisme     = ref('')
-const chismes         = ref<Chisme[]>([])
+const nuevoChisme      = ref('')
+const chismes          = ref<Chisme[]>([])
 let nextId = 0
 
 const inicial = computed(() =>
   nombreUsuario.value.charAt(0).toUpperCase()
 )
 
+// ── CARGAR desde localStorage al montar ──
+onMounted(() => {
+  const chismesGuardados = localStorage.getItem('chismecito-chismes')
+  const nombreGuardado   = localStorage.getItem('chismecito-nombre')
+  const modoGuardado     = localStorage.getItem('chismecito-dark')
+
+  if (chismesGuardados) {
+    chismes.value = JSON.parse(chismesGuardados)
+    nextId = chismes.value.length > 0
+      ? Math.max(...chismes.value.map(c => c.id)) + 1
+      : 0
+  }
+  if (nombreGuardado) {
+    nombreUsuario.value    = nombreGuardado
+    nombreConfirmado.value = true
+  }
+  if (modoGuardado) {
+    modoOscuro.value = modoGuardado === 'true'
+  }
+})
+
+// ── GUARDAR automáticamente cuando cambian ──
+watch(chismes, (val) => {
+  localStorage.setItem('chismecito-chismes', JSON.stringify(val))
+}, { deep: true })
+
+watch(nombreUsuario, (val) => {
+  localStorage.setItem('chismecito-nombre', val)
+})
+
+watch(modoOscuro, (val) => {
+  localStorage.setItem('chismecito-dark', String(val))
+})
+
+// ── FUNCIONES ──
 function confirmarNombre() {
   if (!nombreInput.value.trim()) return
   nombreUsuario.value    = nombreInput.value.trim()
